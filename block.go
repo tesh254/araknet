@@ -13,6 +13,7 @@ type Block struct {
 	Data          []byte
 	PrevBlockHash []byte
 	Hash          []byte
+	Nonce         int
 }
 
 // SetHash handles setting the hash of a single block
@@ -31,9 +32,13 @@ func (b *Block) SetHash() {
 // NewBlock handles creation of a new block
 func NewBlock(data string, prevBlockHash []byte) *Block {
 	// Define block based on the Block struct
-	block := &Block{time.Now().Unix(), []byte(data), prevBlockHash, []byte{}}
-	// Generate block hash
-	block.SetHash()
-	// Return created block
+	block := &Block{time.Now().Unix(), []byte(data), prevBlockHash, []byte{}, 0}
+
+	pow := NewProofOfWork(block)
+	nonce, hash := pow.Run()
+
+	block.Hash = hash[:]
+	block.Nonce = nonce
+
 	return block
 }
