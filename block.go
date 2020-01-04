@@ -5,50 +5,21 @@ import (
 	"crypto/sha256"
 	"encoding/gob"
 	"log"
-	"strconv"
 	"time"
 )
 
-// Block define block structure
+// Block keeps block headers
 type Block struct {
 	Timestamp     int64
-	Data          []byte
+	Transactions  []*Transaction
 	PrevBlockHash []byte
 	Hash          []byte
 	Nonce         int
 }
 
-// SetHash handles setting the hash of a single block
-func (b *Block) SetHash() {
-	// Define block timestamp
-	timestamp := []byte(strconv.FormatInt(b.Timestamp, 10))
-	// Define combined block data
-	headers := bytes.Join([][]byte{b.PrevBlockHash, b.Data, timestamp}, []byte{})
-	// Generate hash from block data
-	hash := sha256.Sum256(headers)
-
-	// return hash
-	b.Hash = hash[:]
-}
-
-// NewBlock handles creation of a new block
-func NewBlock(data string, prevBlockHash []byte) *Block {
-	// Define block based on the Block struct
-	block := &Block{time.Now().Unix(), []byte(data), prevBlockHash, []byte{}, 0}
-
-	pow := NewProofOfWork(block)
-	nonce, hash := pow.Run()
-
-	block.Hash = hash[:]
-	block.Nonce = nonce
-
-	return block
-}
-
-// Serialize handles serialize a struct
+// Serialize serializes the block
 func (b *Block) Serialize() []byte {
 	var result bytes.Buffer
-
 	encoder := gob.NewEncoder(&result)
 
 	err := encoder.Encode(b)
@@ -59,7 +30,37 @@ func (b *Block) Serialize() []byte {
 	return result.Bytes()
 }
 
-// DeserializeBlock handles
+// HashTransactions returns a hash of the transactions in the block
+func (b *Block) HashTransactions() []byte {
+	var txHashes [][]byte
+	var txHash [32]byte
+
+	for _, tx := range b.Transactions {
+		txHashes = append(txHashes, tx.ID)
+	}
+	txHash = sha256.Sum256(bytes.Join(txHashes, []byte{}))
+
+	return txHash[:]
+}
+
+// NewBlock creates and returns Block
+func NewBlock(transactions []*Transaction, prevBlockHash []byte) *Block {
+	block := &Block{time.Now().Unix(), transactions, prevBlockHash, []byte{}, 0}
+	pow := NewProofOfWork(block)
+	nonce, hash := pow.Run()
+
+	block.Hash = hash[:]
+	block.Nonce = nonce
+
+	return block
+}
+
+// NewGenesisBlock creates and returns genesis Block
+func NewGenesisBlock(coinbase *Transaction) *Block {
+	return NewBlock([]*Transaction{coinbase}, []byte{})
+}
+
+// DeserializeBlock deserializes a block
 func DeserializeBlock(d []byte) *Block {
 	var block Block
 
