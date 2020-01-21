@@ -19,3 +19,7 @@
 
 # Build file
 araknet
+
+# Araknet files
+*.dat
+wallets.txt
